@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -10,18 +12,24 @@ public class MainManager : MonoBehaviour
     public int LineCount = 6;
     public Rigidbody Ball;
 
+    public Text BestScoreText;
     public Text ScoreText;
     public GameObject GameOverText;
+    public Button exitButton;
     
     private bool m_Started = false;
     private int m_Points;
+    private int highScore;
     
     private bool m_GameOver = false;
 
-    
     // Start is called before the first frame update
     void Start()
     {
+        exitButton.onClick.AddListener(Exit);
+
+        LoadData();
+
         const float step = 0.6f;
         int perLine = Mathf.FloorToInt(4.0f / step);
         
@@ -35,6 +43,11 @@ public class MainManager : MonoBehaviour
                 brick.PointValue = pointCountArray[i];
                 brick.onDestroyed.AddListener(AddPoint);
             }
+        }
+
+        if (GameManager.Instance.username != null)
+        {
+            BestScoreText.text = "Best Score : " + GameManager.Instance.username + " : " + highScore;
         }
     }
 
@@ -66,11 +79,58 @@ public class MainManager : MonoBehaviour
     {
         m_Points += point;
         ScoreText.text = $"Score : {m_Points}";
+
+        if (m_Points > highScore)
+        {
+            highScore += point;
+            BestScoreText.text = $"Best Score : {GameManager.Instance.username} : {highScore}";
+        }
     }
 
     public void GameOver()
     {
         m_GameOver = true;
         GameOverText.SetActive(true);
+    }
+
+    [System.Serializable]
+    class SavaData
+    {
+        public string username;
+        public int highScore;
+    }
+
+    public void SaveData()
+    {
+        SavaData data = new SavaData();
+        data.username = GameManager.Instance.username;
+        data.highScore = highScore;
+
+        string json = JsonUtility.ToJson(data);
+        File.WriteAllText(Application.persistentDataPath + "/savefile.json", json);
+    }
+
+    public void LoadData()
+    {
+        string path = Application.persistentDataPath + "/savefile.json";
+        if (File.Exists(path))
+        {
+            string json = File.ReadAllText(path);
+
+            SavaData data = JsonUtility.FromJson<SavaData>(json);
+            GameManager.Instance.username = data.username;
+            highScore = data.highScore;
+        }
+    }
+
+    private void Exit()
+    {
+        #if UNITY_EDITOR
+            EditorApplication.ExitPlaymode();
+        #else
+            Application.Quit();
+        #endif
+
+        SaveData();
     }
 }

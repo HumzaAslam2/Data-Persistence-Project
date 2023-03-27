@@ -13,7 +13,7 @@ public class MenuUIHandler : MonoBehaviour
     private void Start()
     {
         startButton.onClick.AddListener(StartGame);
-        startButton.onClick.AddListener(SetUsername);
+        usernameInput.onValueChanged.AddListener(delegate { SetUsername(); });
     }
 
     private void StartGame()
